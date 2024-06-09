@@ -104,6 +104,11 @@ contract DogRace {
     // indexed 키워드는 사실 있어도 없어도 실행에는 문제가 없으나 나중에 event를 조회하게 될 때 차이가 있는 것임
     // placeBet 함수에서 해당 event가 실행되어 로그를 남김
     event BetPlaced(address indexed better, uint256 amount, string dogName);
+    // 베팅 비용을 환불할 때 발생하는 event
+    // BetRefund event의 매개 변수로 address형의 better, uint256형의 amount, string형의 dogName를 선언
+    // placeBet 함수에서 해당 event가 실행되어 로그를 남김
+    // 한 게임 참가자는 한 개에 대해서만 베팅이 가능한데, 중복으로 베팅할 때 다른 개에 베팅할 경우 이전에 베팅한 금액을 반환한다. 이떄 그 기록을 남기기 위해 해당 evnet가 사용
+    event BetRefund(address indexed better, uint256 amount, string dogName);
 
 
     // 여기부터 생성자 정의 부분
@@ -231,7 +236,9 @@ contract DogRace {
                 payable(msg.sender).transfer(bets[msg.sender].amount);
                 // 총 베팅 금액에서 이전 베팅 금액을 차감
                 totalBetAmount -= bets[msg.sender].amount;
-                // 베팅 금액 반환 이벤트 추가 필요
+                // 베팅 금액 반환 event 발생, emit 키워드를 사용하여 event 발생
+                // 반환 기록을 저장
+                emit BetRefund(msg.sender, msg.value, dogName);
             }
             // 이전에 베팅과 동일하게 똑같은 개에 베팅했다면 조건 충족
             // 이 경우 이전에 베팅했던 기록이 남은 구조체에 금액이 합산되어 기록 및 totalBetAmount 값 합산
@@ -243,6 +250,7 @@ contract DogRace {
                 totalBetAmount += msg.value;
 
                 // BetPlaced event 발생, emit 키워드를 사용하여 event 발생
+                // 베팅 기록을 저장
                 emit BetPlaced(msg.sender, msg.value, dogName);
                 // 함수 종료, 이후 로직과 겹치지 않도록 하기 위함
                 return;
@@ -250,6 +258,7 @@ contract DogRace {
         }
 
         // 베팅 정보를 저장, 이전에 베팅했다면 새로운 기록으로 덮어씌어짐
+        // 베팅 기록을 저장
         bets[msg.sender] = Bet({amount: msg.value, dogName: dogName});
         // 전체 베팅 금액에 추가
         totalBetAmount += msg.value;
